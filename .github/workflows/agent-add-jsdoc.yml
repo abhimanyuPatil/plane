@@ -12,10 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    # The agent needs to push a branch and open a PR on your behalf.
+    # contents/pull-requests: write so Claude can push a branch and open a PR.
+    # id-token: write is required by the Claude GitHub App's OIDC exchange —
+    # the action authenticates as the App (not via a raw API key) when
+    # github_token is omitted, and the OIDC handshake needs this permission.
     permissions:
       contents: write
       pull-requests: write
+      id-token: write
 
     steps:
       # 1. Check out the full repo so the agent can read surrounding files
@@ -50,11 +54,17 @@ jobs:
       #    core point of this exercise. The agent reads the target file,
       #    consults neighbouring files for the JSDoc style, writes the docs,
       #    runs a type check to validate nothing broke, then opens a PR.
+      #
+      #    Authentication: github_token is intentionally omitted so the action
+      #    authenticates as the Claude GitHub App (installed on this repo).
+      #    The App has Contents + Pull Requests read/write and is the
+      #    recommended auth path over a raw GITHUB_TOKEN.
+      #    anthropic_api_key is still needed to call the Claude API for
+      #    inference; the GitHub App only covers the git/PR operations.
       - name: Run Claude coding agent
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
 
           # ── FIXED PROMPT ──────────────────────────────────────────────────
           # The agent is given a concrete, scoped task with clear style rules
